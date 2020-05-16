@@ -4,10 +4,16 @@ const express = require('express');
 const bodyParser = require('body-parser')
 var app = express();
 app.use(bodyParser.json());
-
+var allowCrossDomain = function(req, res, next) {
+    res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    next();
+}
+app.use(allowCrossDomain);
 checkToken = (req) => {
     try {
-        const decoded = jwt.verify(req.header('Token'), process.env.APP_JWT_SECRET);
+        const decoded = jwt.verify(req.header('Token'), process.env.APP_JWT_SECRET, {maxAge: '1m'});
         if (decoded) {
             req.jwtProcess = {
                 status : true,
@@ -30,21 +36,11 @@ checkToken = (req) => {
 
 generateToken = (data) => {
     return jwt.sign(data, process.env.APP_JWT_SECRET,{
-        expiresIn: 60000 // expires in 1 minute
+        expiresIn: '1m' // expires in 1 minute
      });
 }
 
-app.get('/ask/session', (req, res) => {
-    let statusConn = checkSession(req.header('Session'))
-    res.statusCode = 200
-    res.json({
-        code: 200,
-        message: "success",
-        data: {
-            session: 'abc123'
-        }
-    })
-});
+
 app.post('/login', (req, res) => {
     console.log(req.body);
     if (req.body.email === 'jeruk@legacy.co.id' && req.body.password === '12345678'){
@@ -66,8 +62,9 @@ app.post('/login', (req, res) => {
         })
     }
  });
- app.get('/book', (req, res) => {
+ app.get('/expCheck', (req, res) => {
     let processedReq = checkToken(req)
+    console.log(processedReq.jwtProcess);
     if (processedReq.jwtProcess.status) {
         res.statusCode = 200
         res.json({
